@@ -1,0 +1,29 @@
+# ============================================================
+#  Render Blueprint — Backend de PlaneAI UdeA (FastAPI)
+#  Crea el servicio web automáticamente desde este repo.
+#  Las variables marcadas con `sync: false` se cargan a mano
+#  en el dashboard de Render (para no exponer secretos).
+# ============================================================
+services:
+  - type: web
+    name: planeai-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13.4"
+      - key: APP_NAME
+        value: PlaneAI UdeA
+      - key: APP_ENV
+        value: production
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      # --- Secretos / valores que se cargan en el dashboard ---
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CORS_ORIGINS          # p.ej. https://planeai-udea.vercel.app
+        sync: false
