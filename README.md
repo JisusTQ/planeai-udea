@@ -252,35 +252,55 @@ ingesta se diseña de forma **robusta y con respaldo**:
 
 ---
 
-## ▶️ Cómo ejecutar (backend)
+## ▶️ Cómo ejecutar
+
+### 1) Backend (API)
 
 ```bash
-# 1. Crear y activar entorno virtual
 cd backend
-python -m venv .venv
-.venv\Scripts\activate        # Windows
-# source .venv/bin/activate   # Linux / macOS
 
-# 2. Instalar dependencias
+# Entorno virtual + dependencias
+python -m venv .venv
+.venv\Scripts\activate            # Windows  (source .venv/bin/activate en Linux/macOS)
 pip install -r requirements.txt
 
-# 3. Configurar variables de entorno
-copy .env.example .env        # Windows  (cp en Linux/macOS)
-#   -> editar .env con la URL de Neon y la API key de Gemini
+# Variables de entorno
+copy .env.example .env            # Windows  (cp en Linux/macOS)
+#   -> edita .env con tu DATABASE_URL (Neon) y tu GEMINI_API_KEY
 
-# 4. Levantar el servidor de desarrollo
+# Crear las tablas en la BD (migraciones)
+alembic upgrade head
+
+# Cargar datos (intenta scraping; si falla, usa el dataset semilla)
+cd .. && python -m scraper.run_scraper && cd backend
+
+# Levantar el servidor
 uvicorn app.main:app --reload
 #   API:  http://localhost:8000
-#   Docs: http://localhost:8000/docs   (Swagger automático)
+#   Docs: http://localhost:8000/docs   (Swagger interactivo)
 ```
+
+### 2) Frontend (interfaz)
+
+```bash
+cd frontend
+npm install
+npm run dev
+#   App:  http://localhost:5173
+```
+
+> Levanta **primero el backend** y luego el frontend. El backend ya habilita
+> CORS desde `http://localhost:5173`.
 
 ---
 
 ## 🗺️ Estado y hoja de ruta
 
 - [x] **Fase 1 — Diseño:** estructura del proyecto, modelo de datos y esquema de BD.
-- [ ] **Fase 2 — Base de datos:** conexión a Neon + migraciones con Alembic.
-- [ ] **Fase 3 — Ingesta:** scraper + carga del dataset semilla a PostgreSQL.
-- [ ] **Fase 4 — API:** endpoints de cursos y cupos.
-- [ ] **Fase 5 — IA:** endpoint `/chat` integrado con Gemini.
-- [ ] **Fase 6 — Frontend:** chat conversacional y vista de cupos.
+- [x] **Fase 2 — Base de datos:** conexión a Neon + migraciones con Alembic.
+- [x] **Fase 3 — Ingesta:** scraper + carga del dataset semilla a PostgreSQL.
+- [x] **Fase 4 — API:** endpoints de cursos y cupos.
+- [x] **Fase 5 — IA:** endpoint `/chat` integrado con Gemini.
+- [x] **Fase 6 — Frontend:** chat conversacional y vista de cupos.
+
+> ✅ **Proyecto completo y funcional** (backend + IA + base de datos + frontend).
