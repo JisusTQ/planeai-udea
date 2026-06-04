@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.config import get_settings
 from app.models import Curso
 from app.services import udea_horarios_service as udea
+from app.services import udea_pensum_service as pensum
 
 settings = get_settings()
 
@@ -29,21 +30,41 @@ SYSTEM_PROMPT = """Eres "PlaneAI", un asistente de planeación académica para e
 del programa de Ingeniería de Sistemas de la Universidad de Antioquia (UdeA).
 
 Tu objetivo es ayudar a armar horarios y recomendar materias. Reglas estrictas:
-1. Para CUALQUIER dato de grupos, cupos, horarios o profesores DEBES usar la
-   herramienta `consultar_horarios_udea`, que consulta la oferta REAL y vigente
-   del portal oficial. NUNCA inventes grupos, cupos, horarios ni profesores.
-2. La herramienta puede recibir el nombre (o parte) de una materia. Si el
-   estudiante menciona varias materias, consúltalas (puedes llamar la
-   herramienta varias veces).
-3. Los créditos y prerrequisitos vienen en el CATÁLOGO que se te entrega como
-   contexto (proviene de la base de datos). Crúzalo con la oferta en vivo por el
-   NOMBRE de la materia: los códigos del portal y del catálogo pueden diferir.
-4. Si un grupo tiene 0 cupos disponibles, adviértelo y sugiere otro grupo.
-5. Respeta los prerrequisitos: si el estudiante quiere un curso, menciona qué
-   prerrequisitos exige (según el catálogo).
-6. Al proponer un horario, evita CHOQUES (dos materias el mismo día a la misma hora).
-7. Responde en español, de forma clara, breve y organizada (usa listas cuando ayude).
-8. Si la herramienta devuelve un error o no encuentra la materia, dilo con honestidad."""
+1. Cuando el estudiante mencione un SEMESTRE o NIVEL (p. ej. "soy de primer
+   semestre"), PRIMERO usa la herramienta `consultar_pensum` con ese nivel para
+   saber qué materias le corresponden (nivel = semestre: 1=primero, 2=segundo…).
+2. LUEGO consulta los grupos de esas materias con `consultar_horarios_udea`
+   pasándolas TODAS en UNA sola llamada, separadas por punto y coma ";"
+   (no la llames una vez por materia). Solo recomienda materias que correspondan
+   al nivel del estudiante y que tengan cupos disponibles.
+3. Para CUALQUIER dato de grupos, cupos, horarios o profesores DEBES usar
+   `consultar_horarios_udea`. NUNCA inventes grupos, cupos, horarios ni profesores.
+4. Puedes llamar las herramientas varias veces (una por materia si hace falta).
+   Cruza pensum y oferta por el NOMBRE de la materia: los códigos pueden diferir,
+   y algunas materias del pensum pueden no estar ofertadas este semestre (dilo).
+5. Si pide algo "en la mañana", filtra horarios antes de las 12:00; "en la tarde",
+   de 12:00 en adelante.
+6. Si un grupo tiene 0 cupos disponibles, adviértelo y sugiere otro grupo.
+7. Respeta los prerrequisitos: el CATÁLOGO de contexto (de la base de datos) y los
+   requisitos del pensum te ayudan; menciónalos cuando sean relevantes.
+8. Al proponer un horario, evita CHOQUES (dos materias el mismo día a la misma hora).
+9. Responde en español, de forma clara, breve y organizada (usa listas cuando ayude).
+10. Si una herramienta devuelve un error o no encuentra datos, dilo con honestidad."""
+
+
+def _formatear_materia(m) -> list[str]:
+    lineas = [f"{m.nombre} (código {m.codigo}):"]
+    for g in m.grupos:
+        sesiones = (
+            "; ".join(f"{s.dia} {s.hora_inicio}-{s.hora_fin}" for s in g.horario)
+            or "sin horario"
+        )
+        lineas.append(
+            f"  - Grupo {g.numero}: cupos {g.cupos_disponibles}/"
+            f"{g.cupos_totales}, profesor {g.profesor}, "
+            f"horario [{sesiones}], aula {g.aula}."
+        )
+    return lineas
 
 
 def consultar_horarios_udea(materia: str = "") -> str:
@@ -51,48 +72,79 @@ def consultar_horarios_udea(materia: str = "") -> str:
     académica vigente del programa de Ingeniería de Sistemas de la UdeA.
 
     Úsala siempre que necesites información de grupos, cupos disponibles,
-    horarios o profesores de una materia.
+    horarios o profesores de una o varias materias.
 
     Args:
-        materia: Nombre (o parte del nombre) de la materia a consultar,
-            por ejemplo "cálculo" o "álgebra lineal". Si se deja vacío,
-            devuelve la lista de todas las materias disponibles para que
-            puedas elegir y volver a consultar con una en concreto.
+        materia: Nombre (o parte) de la materia. Para consultar VARIAS materias
+            de una sola vez (recomendado, p. ej. todas las de un semestre),
+            sepáralas con punto y coma ";", por ejemplo
+            "cálculo diferencial; álgebra y trigonometría; geometría vectorial".
+            Si se deja vacío, devuelve la lista de materias disponibles.
 
     Returns:
-        Texto con los grupos encontrados (cupos, horario, profesor y aula) o la
-        lista de materias disponibles.
+        Texto con los grupos encontrados de cada materia (cupos, horario,
+        profesor y aula) o la lista de materias disponibles.
     """
     try:
         if not materia.strip():
             nombres = "; ".join(m.nombre for m in udea.obtener_oferta())
             return f"Materias disponibles en la oferta vigente:\n{nombres}"
 
-        materias = udea.buscar_materias(materia)
-        if not materias:
-            return (
-                f"No se encontraron materias que coincidan con '{materia}' "
-                "en la oferta vigente."
-            )
-
-        lineas: list[str] = []
-        for m in materias:
-            lineas.append(f"{m.nombre} (código {m.codigo}):")
-            for g in m.grupos:
-                sesiones = (
-                    "; ".join(
-                        f"{s.dia} {s.hora_inicio}-{s.hora_fin}" for s in g.horario
-                    )
-                    or "sin horario"
+        terminos = [t.strip() for t in materia.split(";") if t.strip()]
+        bloques: list[str] = []
+        for termino in terminos:
+            materias = udea.buscar_materias(termino)
+            if not materias:
+                bloques.append(
+                    f"'{termino}': no se encontró en la oferta vigente "
+                    "(puede no estar ofertada este semestre)."
                 )
-                lineas.append(
-                    f"  - Grupo {g.numero}: cupos {g.cupos_disponibles}/"
-                    f"{g.cupos_totales}, profesor {g.profesor}, "
-                    f"horario [{sesiones}], aula {g.aula}."
-                )
-        return "\n".join(lineas)
+                continue
+            for m in materias:
+                bloques.append("\n".join(_formatear_materia(m)))
+        return "\n\n".join(bloques)
     except Exception as exc:  # noqa: BLE001 — degradar con elegancia para el modelo
         return f"Error al consultar el portal de la UdeA: {exc}"
+
+
+def consultar_pensum(nivel: int = 0) -> str:
+    """Consulta el PENSUM oficial (plan de estudios) de Ingeniería de Sistemas:
+    qué materias corresponden a cada nivel, donde NIVEL = SEMESTRE (nivel 1 =
+    primer semestre, nivel 2 = segundo, etc.).
+
+    Úsala SIEMPRE que necesites saber qué materias le tocan a un estudiante según
+    su semestre, antes de revisar cupos y horarios.
+
+    Args:
+        nivel: número de semestre (1, 2, 3, ...). Usa 99 para las electivas.
+            Si se deja en 0, devuelve un resumen con cuántas materias hay por nivel.
+
+    Returns:
+        Texto con las materias del nivel solicitado (nombre, código, créditos y
+        tipo) o un resumen de los niveles disponibles.
+    """
+    try:
+        if not nivel:
+            niveles = pensum.niveles_disponibles()
+            partes = []
+            for n in niveles:
+                etiqueta = "electivas" if n == pensum.NIVEL_ELECTIVAS else f"semestre {n}"
+                partes.append(f"nivel {n} ({etiqueta}): {len(pensum.materias_por_nivel(n))} materias")
+            return "Niveles disponibles en el pensum:\n" + "\n".join(partes)
+
+        materias = pensum.materias_por_nivel(nivel)
+        if not materias:
+            return f"No hay materias registradas para el nivel {nivel} en el pensum."
+
+        etiqueta = "electivas" if nivel == pensum.NIVEL_ELECTIVAS else f"semestre {nivel}"
+        lineas = [f"Materias del nivel {nivel} ({etiqueta}):"]
+        for m in materias:
+            lineas.append(
+                f"  - {m.nombre} (código {m.codigo}, {m.creditos} créditos, {m.tipo})"
+            )
+        return "\n".join(lineas)
+    except Exception as exc:  # noqa: BLE001 — degradar con elegancia para el modelo
+        return f"Error al consultar el pensum de la UdeA: {exc}"
 
 
 def _contexto_catalogo(db: Session) -> tuple[str, int]:
@@ -146,7 +198,7 @@ def responder(db: Session, mensaje: str) -> tuple[str, int]:
     model = genai.GenerativeModel(
         model_name=settings.GEMINI_MODEL,
         system_instruction=SYSTEM_PROMPT,
-        tools=[consultar_horarios_udea],
+        tools=[consultar_pensum, consultar_horarios_udea],
     )
     # El SDK ejecuta automáticamente el bucle agéntico (llamar la herramienta y
     # devolver su resultado al modelo) hasta producir la respuesta final.
@@ -155,8 +207,9 @@ def responder(db: Session, mensaje: str) -> tuple[str, int]:
     prompt = (
         "CATÁLOGO DE CURSOS (créditos y prerrequisitos; fuente: base de datos):\n"
         f"{catalogo}\n\n"
-        "Recuerda: para grupos, cupos, horarios y profesores usa la herramienta "
-        "`consultar_horarios_udea` (datos en vivo).\n\n"
+        "Recuerda el flujo: si hay un semestre/nivel, primero `consultar_pensum` "
+        "para saber las materias del nivel, y luego `consultar_horarios_udea` "
+        "para sus cupos y horarios reales.\n\n"
         f"PREGUNTA DEL ESTUDIANTE:\n{mensaje}"
     )
 

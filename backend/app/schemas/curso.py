@@ -42,6 +42,15 @@ class GrupoOut(BaseModel):
     profesor: ProfesorOut | None = None
 
 
+class MateriaPensumOut(BaseModel):
+    """Materia del pensum oficial, ubicada en su nivel (= semestre)."""
+    codigo: int
+    nombre: str
+    nivel: int
+    creditos: int
+    tipo: str
+
+
 class GrupoVivoOut(BaseModel):
     """Grupo obtenido EN VIVO del portal de la UdeA (profesor como texto plano)."""
     numero: str

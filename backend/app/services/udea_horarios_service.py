@@ -166,8 +166,12 @@ class _TlsLegacyAdapter(HTTPAdapter):
         return super().proxy_manager_for(*args, **kwargs)
 
 
-def _nueva_sesion() -> requests.Session:
-    """Crea una sesión HTTP con el adaptador TLS adaptado al portal UdeA."""
+def crear_sesion() -> requests.Session:
+    """
+    Crea una sesión HTTP con el adaptador TLS adaptado a los portales de la UdeA
+    (TLS legacy + CA autofirmada). Reutilizable por otros servicios (p. ej. el
+    pensum), que comparten esa misma configuración antigua de SSL.
+    """
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     sesion = requests.Session()
     sesion.mount("https://", _TlsLegacyAdapter())
@@ -178,7 +182,7 @@ def _nueva_sesion() -> requests.Session:
 
 def _descargar_html() -> str:
     """Ejecuta el flujo de sesión (GET + POST) y devuelve el HTML de resultados."""
-    sesion = _nueva_sesion()
+    sesion = crear_sesion()
 
     # 1) GET inicial: fija la cookie PHPSESSID y entrega el token numrand.
     inicial = sesion.get(_URL, timeout=_TIMEOUT)

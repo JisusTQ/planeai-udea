@@ -18,6 +18,7 @@ from app.schemas.curso import (
     CursoDetalle,
     CursoResumen,
     GrupoVivoOut,
+    MateriaPensumOut,
     MateriaVivaOut,
     ProfesorOut,
     SesionHorario,
@@ -25,6 +26,7 @@ from app.schemas.curso import (
 )
 from app.services import curso_service
 from app.services import udea_horarios_service as udea
+from app.services import udea_pensum_service as pensum
 
 router = APIRouter(prefix="/cursos", tags=["Cursos"])
 
@@ -77,6 +79,37 @@ def oferta_en_vivo():
             ],
         )
         for m in oferta
+    ]
+
+
+@router.get(
+    "/pensum",
+    response_model=list[MateriaPensumOut],
+    summary="Pensum oficial por nivel (semestre)",
+)
+def pensum_oficial(nivel: int | None = None):
+    """
+    Devuelve las materias del pensum oficial (portal Cursum). Con `?nivel=N` filtra
+    por nivel/semestre (1=primero, 2=segundo…; 99=electivas).
+    """
+    try:
+        materias = (
+            pensum.materias_por_nivel(nivel) if nivel else pensum.obtener_pensum()
+        )
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(
+            status_code=502, detail=f"No se pudo consultar el pensum UdeA: {exc}"
+        ) from exc
+
+    return [
+        MateriaPensumOut(
+            codigo=m.codigo,
+            nombre=m.nombre,
+            nivel=m.nivel,
+            creditos=m.creditos,
+            tipo=m.tipo,
+        )
+        for m in materias
     ]
 
 
