@@ -34,7 +34,6 @@ def main() -> None:
     d = client.get(f"/cursos/{cid}").json()
     print("curso:", d["nombre"])
     print("   prerrequisitos:", [p["nombre"] for p in d["prerrequisitos"]])
-    print("   nº grupos:", len(d["grupos"]))
 
     print("\n=== GET /cursos/{id}/grupos (cupos y horarios) ===")
     for gr in client.get(f"/cursos/{cid}/grupos").json():

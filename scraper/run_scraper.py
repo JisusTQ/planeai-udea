@@ -2,11 +2,12 @@
 Orquestador de ingesta de datos (batch) para PlaneAI UdeA.
 
 Flujo:
-  1. Intenta extraer la oferta de cursos de las fuentes oficiales (scraper.py).
+  1. Intenta extraer el catálogo de cursos de las fuentes oficiales (scraper.py).
   2. Si no obtiene datos, usa scraper/seed_data.json como respaldo.
-  3. Persiste los datos en PostgreSQL de forma IDEMPOTENTE (no duplica al
-     re-ejecutar): cursos, profesores (de-duplicados por nombre), grupos y,
-     en una segunda pasada, los prerrequisitos entre cursos.
+  3. Persiste el CATÁLOGO en PostgreSQL de forma IDEMPOTENTE (no duplica al
+     re-ejecutar): cursos y, en una segunda pasada, los prerrequisitos entre
+     cursos. Los grupos/horarios/cupos ya NO se guardan en la BD: se consultan
+     en vivo del portal de la UdeA (app/services/udea_horarios_service).
 
 Uso (desde la raíz del proyecto):
     python -m scraper.run_scraper              # intenta scraping y cae al seed
@@ -24,7 +25,7 @@ _RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_RAIZ / "backend"))
 
 from app.database import SessionLocal  # noqa: E402
-from app.models import Curso, Grupo, Profesor  # noqa: E402
+from app.models import Curso  # noqa: E402
 
 from scraper.scraper import scrape_cursos  # noqa: E402
 
@@ -39,37 +40,16 @@ def cargar_seed() -> list[dict]:
     return data["cursos"]
 
 
-def _obtener_o_crear_profesor(db, cache: dict, info: dict | None):
-    """Devuelve un Profesor existente (por nombre) o lo crea. De-duplica docentes."""
-    if not info or not info.get("nombre"):
-        return None
-    nombre = info["nombre"]
-    if nombre in cache:
-        return cache[nombre]
-    prof = db.query(Profesor).filter_by(nombre=nombre).first()
-    if not prof:
-        prof = Profesor(
-            nombre=nombre,
-            email=info.get("email"),
-            departamento=info.get("departamento"),
-        )
-        db.add(prof)
-        db.flush()
-    cache[nombre] = prof
-    return prof
-
-
 def persistir(cursos_data: list[dict]) -> dict:
     """
-    Inserta/actualiza los datos en la BD de forma idempotente.
+    Inserta/actualiza el catálogo de cursos en la BD de forma idempotente.
     Devuelve un resumen con los conteos finales.
     """
     db = SessionLocal()
     try:
         cache_cursos: dict[str, Curso] = {}
-        cache_profes: dict[str, Profesor] = {}
 
-        # --- 1ª pasada: cursos, profesores y grupos ---
+        # --- 1ª pasada: cursos ---
         for c in cursos_data:
             curso = db.query(Curso).filter_by(codigo=c["codigo"]).first()
             if curso is None:
@@ -83,30 +63,6 @@ def persistir(cursos_data: list[dict]) -> dict:
             curso.descripcion = c.get("descripcion")
             db.flush()  # asigna curso.id
             cache_cursos[c["codigo"]] = curso
-
-            for g in c.get("grupos", []):
-                prof = _obtener_o_crear_profesor(db, cache_profes, g.get("profesor"))
-                grupo = (
-                    db.query(Grupo)
-                    .filter_by(
-                        curso_id=curso.id,
-                        numero=g["numero"],
-                        semestre_academico=g["semestre_academico"],
-                    )
-                    .first()
-                )
-                if grupo is None:
-                    grupo = Grupo(
-                        curso_id=curso.id,
-                        numero=g["numero"],
-                        semestre_academico=g["semestre_academico"],
-                    )
-                    db.add(grupo)
-                grupo.cupos_totales = g.get("cupos_totales", 0)
-                grupo.cupos_disponibles = g.get("cupos_disponibles", 0)
-                grupo.horario = g.get("horario", [])
-                grupo.aula = g.get("aula")
-                grupo.profesor = prof
 
         db.flush()
 
@@ -123,11 +79,7 @@ def persistir(cursos_data: list[dict]) -> dict:
 
         db.commit()
 
-        return {
-            "cursos": db.query(Curso).count(),
-            "profesores": db.query(Profesor).count(),
-            "grupos": db.query(Grupo).count(),
-        }
+        return {"cursos": db.query(Curso).count()}
 
     except Exception:
         db.rollback()
@@ -157,9 +109,7 @@ def main() -> None:
 
     resumen = persistir(cursos)
     print("\n=== Ingesta completada ===")
-    print(f"  Cursos     : {resumen['cursos']}")
-    print(f"  Profesores : {resumen['profesores']}")
-    print(f"  Grupos     : {resumen['grupos']}")
+    print(f"  Cursos : {resumen['cursos']}")
 
 
 if __name__ == "__main__":

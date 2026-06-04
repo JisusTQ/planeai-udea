@@ -26,7 +26,7 @@ engine = create_engine(
 # Cada instancia de SessionLocal representa una sesión/transacción independiente.
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Clase base declarativa: Curso, Grupo y Profesor heredarán de ella.
+# Clase base declarativa de la que hereda el modelo Curso (catálogo).
 Base = declarative_base()
 
 

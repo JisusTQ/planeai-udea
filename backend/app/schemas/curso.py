@@ -81,7 +81,10 @@ class CursoResumen(BaseModel):
 
 
 class CursoDetalle(CursoResumen):
-    """Curso completo: incluye descripción, grupos y prerrequisitos."""
+    """Curso completo del catálogo: incluye descripción y prerrequisitos.
+
+    Los grupos/horarios/cupos NO se incluyen aquí: se consultan en vivo en el
+    endpoint GET /cursos/{id}/grupos.
+    """
     descripcion: str | None = None
-    grupos: list[GrupoOut] = []
     prerrequisitos: list[CursoResumen] = []

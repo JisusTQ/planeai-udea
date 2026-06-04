@@ -1,13 +1,14 @@
 """
-Servicio de cursos: lógica de negocio para consultar cursos y grupos.
+Servicio de cursos: lógica de negocio para consultar el catálogo de cursos.
 
 Separa las consultas a la BD de los routers (que solo manejan HTTP). Usa
-`selectinload` para traer grupos, profesores y prerrequisitos en pocas
-consultas y evitar el problema N+1.
+`selectinload` para traer los prerrequisitos en pocas consultas y evitar el
+problema N+1. Los grupos/horarios/cupos NO se consultan aquí: vienen en vivo
+del portal de la UdeA (ver app/services/udea_horarios_service).
 """
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import Curso, Grupo
+from app.models import Curso
 
 
 def listar_cursos(
@@ -25,24 +26,10 @@ def listar_cursos(
 
 
 def obtener_curso(db: Session, curso_id: int) -> Curso | None:
-    """Obtiene un curso por id, con sus grupos (y profesor) y prerrequisitos."""
+    """Obtiene un curso por id, con sus prerrequisitos."""
     return (
         db.query(Curso)
-        .options(
-            selectinload(Curso.grupos).selectinload(Grupo.profesor),
-            selectinload(Curso.prerrequisitos),
-        )
+        .options(selectinload(Curso.prerrequisitos))
         .filter(Curso.id == curso_id)
         .first()
-    )
-
-
-def obtener_grupos_de_curso(db: Session, curso_id: int) -> list[Grupo]:
-    """Devuelve los grupos de un curso, con su profesor cargado."""
-    return (
-        db.query(Grupo)
-        .options(selectinload(Grupo.profesor))
-        .filter(Grupo.curso_id == curso_id)
-        .order_by(Grupo.numero)
-        .all()
     )

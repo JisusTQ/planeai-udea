@@ -3,7 +3,8 @@ Modelo Curso: representa una asignatura del pensum (p. ej. "Cálculo Diferencial
 
 Un Curso es la entidad "catálogo": describe la materia en abstracto (su código,
 nombre, créditos y a qué programa pertenece). Las ofertas concretas de cada
-semestre —con su horario, cupos y profesor— se modelan aparte en la tabla Grupo.
+semestre —grupos, horarios, cupos y profesores— ya NO se guardan en la BD: se
+consultan EN VIVO del portal de la UdeA (ver app/services/udea_horarios_service).
 
 Además, un Curso puede tener PRERREQUISITOS: otros cursos que deben aprobarse
 antes de poder matricularlo. Es una relación muchos-a-muchos del Curso CONSIGO
@@ -47,15 +48,6 @@ class Curso(Base):
     programa = Column(String(150), nullable=False, index=True)
 
     descripcion = Column(Text)
-
-    # Relación 1:N -> un curso tiene muchos grupos.
-    # cascade="all, delete-orphan": si se elimina el curso, se eliminan sus grupos.
-    grupos = relationship(
-        "Grupo",
-        back_populates="curso",
-        cascade="all, delete-orphan",
-        passive_deletes=True,  # confía en el ON DELETE CASCADE de la BD
-    )
 
     # Relación N:M auto-referencial -> prerrequisitos del curso.
     #   curso.prerrequisitos       -> lista de cursos que ESTE curso requiere.
