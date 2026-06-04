@@ -54,6 +54,7 @@ class Curso(Base):
         "Grupo",
         back_populates="curso",
         cascade="all, delete-orphan",
+        passive_deletes=True,  # confía en el ON DELETE CASCADE de la BD
     )
 
     # Relación N:M auto-referencial -> prerrequisitos del curso.

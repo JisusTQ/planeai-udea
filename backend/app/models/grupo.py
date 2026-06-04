@@ -38,9 +38,15 @@ class Grupo(Base):
 
     aula = Column(String(50))
 
-    # --- Llaves foráneas ---
-    curso_id = Column(Integer, ForeignKey("cursos.id"), nullable=False, index=True)
-    profesor_id = Column(Integer, ForeignKey("profesores.id"), index=True)
+    # --- Llaves foráneas (con ondelete a nivel de BD, coincide con schema.sql) ---
+    #   · CASCADE : si se elimina el curso, se eliminan sus grupos.
+    #   · SET NULL: si se elimina el profesor, el grupo queda sin docente asignado.
+    curso_id = Column(
+        Integer, ForeignKey("cursos.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    profesor_id = Column(
+        Integer, ForeignKey("profesores.id", ondelete="SET NULL"), index=True
+    )
 
     # --- Relaciones ORM ---
     curso = relationship("Curso", back_populates="grupos")

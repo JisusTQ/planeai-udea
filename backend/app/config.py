@@ -7,8 +7,14 @@ dispersa y centraliza toda la configuración en un único lugar
 (buena práctica de la metodología "12-factor app").
 """
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Ruta ABSOLUTA al archivo backend/.env. Usarla (en vez de ".env" relativo) hace
+# que la configuración se cargue correctamente sin importar desde qué carpeta se
+# ejecute el proceso: la app (uvicorn), Alembic o el scraper.
+_ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 
 
 class Settings(BaseSettings):
@@ -26,9 +32,9 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     CORS_ORIGINS: str = "http://localhost:5173"
 
-    # Lee automáticamente el archivo .env ubicado en la carpeta backend/.
+    # Lee automáticamente el archivo backend/.env (ruta absoluta _ENV_FILE).
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(_ENV_FILE),
         env_file_encoding="utf-8",
         extra="ignore",
     )
