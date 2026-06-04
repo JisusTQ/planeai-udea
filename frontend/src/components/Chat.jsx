@@ -1,14 +1,19 @@
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 
-import { enviarMensaje } from "../api.js";
-import { IconSend } from "./icons.jsx";
+import { enviarMensaje, obtenerSugerencias } from "../api.js";
+import { IconSend, IconPlus, IconCopy, IconCheck, IconBolt } from "./icons.jsx";
 
-const SUGERENCIAS = [
-  "Soy de primer semestre, ¿qué materias matriculo en la mañana?",
+const SUGERENCIAS_INICIALES = [
+  "Soy de primer semestre, ¿qué matriculo en la mañana?",
   "¿Qué grupos de Cálculo Integral tienen cupo?",
   "Ármame un horario de segundo semestre sin choques.",
+  "¿Qué puedo ver si ya aprobé Cálculo Diferencial?",
+  "Muéstrame materias con pocos cupos disponibles.",
+  "¿Qué profesores dictan Matemáticas Discretas?",
 ];
+
+const barajar = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
 const SALUDO = {
   rol: "bot",
@@ -16,11 +21,56 @@ const SALUDO = {
     "Hola, soy **PlaneAI**. Consulto en vivo el pensum y los cupos de Ingeniería de Sistemas de la UdeA para ayudarte a planear tu semestre. ¿Por dónde empezamos?",
 };
 
+const NOMBRE_TOOL = {
+  consultar_pensum: "Pensum",
+  consultar_horarios_udea: "Cupos y horarios",
+};
+
+function etiquetaPaso(paso) {
+  const nombre = NOMBRE_TOOL[paso.herramienta] || paso.herramienta;
+  const arg = paso.args?.nivel || paso.args?.materia || "";
+  const corto = arg.length > 30 ? `${arg.slice(0, 30)}…` : arg;
+  return corto ? `${nombre}: ${corto}` : nombre;
+}
+
+function RespuestaBot({ texto, pasos }) {
+  const [copiado, setCopiado] = useState(false);
+
+  function copiar() {
+    navigator.clipboard?.writeText(texto).then(() => {
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 1500);
+    });
+  }
+
+  return (
+    <div className="bubble">
+      <ReactMarkdown>{texto}</ReactMarkdown>
+      {pasos?.length > 0 && (
+        <div className="pasos">
+          <IconBolt width={13} height={13} />
+          {pasos.map((p, i) => (
+            <span key={i} className="paso">
+              {etiquetaPaso(p)}
+            </span>
+          ))}
+        </div>
+      )}
+      <button className="copiar" onClick={copiar} aria-label="Copiar respuesta">
+        {copiado ? <IconCheck width={14} height={14} /> : <IconCopy width={14} height={14} />}
+      </button>
+    </div>
+  );
+}
+
 export default function Chat() {
   const [mensajes, setMensajes] = useState([SALUDO]);
   const [entrada, setEntrada] = useState("");
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
+  const [sugerencias, setSugerencias] = useState(() =>
+    barajar(SUGERENCIAS_INICIALES).slice(0, 4)
+  );
   const finRef = useRef(null);
   const areaRef = useRef(null);
 
@@ -28,19 +78,19 @@ export default function Chat() {
     finRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensajes, cargando]);
 
-  async function enviar(texto) {
-    const msg = (texto ?? entrada).trim();
-    if (!msg || cargando) return;
-
-    setError(null);
-    setEntrada("");
-    if (areaRef.current) areaRef.current.style.height = "auto";
-    setMensajes((p) => [...p, { rol: "user", texto: msg }]);
+  async function pedirRespuesta(conversacion) {
     setCargando(true);
-
+    setError(null);
+    setSugerencias([]);
+    const previos = conversacion.slice(0, -1);
+    const msg = conversacion[conversacion.length - 1].texto;
     try {
-      const data = await enviarMensaje(msg);
-      setMensajes((p) => [...p, { rol: "bot", texto: data.respuesta }]);
+      const data = await enviarMensaje(msg, previos);
+      const nueva = [...conversacion, { rol: "bot", texto: data.respuesta, pasos: data.pasos }];
+      setMensajes(nueva);
+      obtenerSugerencias(nueva)
+        .then((d) => d.sugerencias?.length && setSugerencias(d.sugerencias))
+        .catch(() => {});
     } catch (e) {
       setError(e.message);
     } finally {
@@ -48,11 +98,36 @@ export default function Chat() {
     }
   }
 
+  function enviar(texto) {
+    const msg = (texto ?? entrada).trim();
+    if (!msg || cargando) return;
+    setEntrada("");
+    if (areaRef.current) areaRef.current.style.height = "auto";
+    const conversacion = [...mensajes, { rol: "user", texto: msg }];
+    setMensajes(conversacion);
+    pedirRespuesta(conversacion);
+  }
+
+  function nuevaConversacion() {
+    if (cargando) return;
+    setMensajes([SALUDO]);
+    setEntrada("");
+    setError(null);
+    setSugerencias(barajar(SUGERENCIAS_INICIALES).slice(0, 4));
+  }
+
   return (
     <div className="view">
-      <div className="view-head">
-        <h2>Asistente</h2>
-        <p>Pregunta por materias, cupos y horarios en lenguaje natural.</p>
+      <div className="view-head con-accion">
+        <div>
+          <h2>Asistente</h2>
+          <p>Pregunta por materias, cupos y horarios en lenguaje natural.</p>
+        </div>
+        {mensajes.length > 1 && (
+          <button className="btn-ghost" onClick={nuevaConversacion} disabled={cargando}>
+            <IconPlus width={16} height={16} /> Nueva
+          </button>
+        )}
       </div>
 
       <div className="chat-scroll">
@@ -62,9 +137,11 @@ export default function Chat() {
               <div className={`avatar ${m.rol === "bot" ? "bot" : "me"}`}>
                 {m.rol === "bot" ? "P" : "Tú"}
               </div>
-              <div className="bubble">
-                {m.rol === "bot" ? <ReactMarkdown>{m.texto}</ReactMarkdown> : m.texto}
-              </div>
+              {m.rol === "bot" ? (
+                <RespuestaBot texto={m.texto} pasos={m.pasos} />
+              ) : (
+                <div className="bubble">{m.texto}</div>
+              )}
             </div>
           ))}
 
@@ -81,16 +158,23 @@ export default function Chat() {
             </div>
           )}
 
-          {error && <div className="banner-error">{error}</div>}
+          {error && (
+            <div className="banner-error">
+              <span>{error}</span>
+              <button onClick={() => pedirRespuesta(mensajes)} disabled={cargando}>
+                Reintentar
+              </button>
+            </div>
+          )}
           <div ref={finRef} />
         </div>
       </div>
 
       <div className="composer">
-        {mensajes.length === 1 && (
+        {!cargando && sugerencias.length > 0 && (
           <div className="chips">
-            {SUGERENCIAS.map((s) => (
-              <button key={s} className="chip" onClick={() => enviar(s)} disabled={cargando}>
+            {sugerencias.map((s) => (
+              <button key={s} className="chip" onClick={() => enviar(s)}>
                 {s}
               </button>
             ))}

@@ -148,12 +148,44 @@ def _api_key_valida() -> bool:
     return bool(key) and not key.startswith("tu_api_key")
 
 
-def responder(mensaje: str) -> str:
-    """
-    Genera la respuesta del asistente para el mensaje del estudiante usando un
-    agente Gemini con tool-calling automático sobre datos en vivo de la UdeA.
+def _a_history_gemini(historial: list[dict]) -> list[dict]:
+    """Convierte el historial del frontend al formato de Gemini, que exige que
+    la conversación empiece con un turno 'user' y alterne los roles."""
+    h: list[dict] = []
+    for m in historial:
+        role = "user" if m.get("rol") == "user" else "model"
+        if not h and role != "user":
+            continue  # descarta el saludo inicial del asistente
+        texto = (m.get("texto") or "").strip()
+        if texto:
+            h.append({"role": role, "parts": [texto]})
+    return h
 
-    Lanza ValueError si la API key no está configurada.
+
+def _extraer_pasos(chat) -> list[dict]:
+    """Lista las herramientas que el agente decidió invocar durante el turno."""
+    pasos: list[dict] = []
+    for content in chat.history:
+        for part in getattr(content, "parts", []):
+            fc = getattr(part, "function_call", None)
+            if fc and getattr(fc, "name", None):
+                args = {}
+                try:
+                    for k, v in fc.args.items():
+                        args[k] = str(v)
+                except Exception:  # noqa: BLE001
+                    pass
+                pasos.append({"herramienta": fc.name, "args": args})
+    return pasos
+
+
+def responder(mensaje: str, historial: list[dict] | None = None) -> tuple[str, list[dict]]:
+    """
+    Responde al estudiante con el agente Gemini sobre datos en vivo de la UdeA.
+
+    Recibe el historial previo (memoria multi-turno) y devuelve la respuesta y
+    la traza de herramientas que el agente invocó. Lanza ValueError si la API
+    key no está configurada.
     """
     if not _api_key_valida():
         raise ValueError(
@@ -162,22 +194,38 @@ def responder(mensaje: str) -> str:
         )
 
     genai.configure(api_key=settings.GEMINI_API_KEY)
-
     model = genai.GenerativeModel(
         model_name=settings.GEMINI_MODEL,
         system_instruction=SYSTEM_PROMPT,
         tools=[consultar_pensum, consultar_horarios_udea],
     )
-    # El SDK ejecuta automáticamente el bucle agéntico (llamar la herramienta y
-    # devolver su resultado al modelo) hasta producir la respuesta final.
-    chat = model.start_chat(enable_automatic_function_calling=True)
-
-    prompt = (
-        "Recuerda el flujo: si hay un semestre/nivel, primero `consultar_pensum` "
-        "para saber las materias del nivel y sus prerrequisitos, y luego "
-        "`consultar_horarios_udea` para sus cupos y horarios reales.\n\n"
-        f"PREGUNTA DEL ESTUDIANTE:\n{mensaje}"
+    chat = model.start_chat(
+        history=_a_history_gemini(historial or []),
+        enable_automatic_function_calling=True,
     )
+    respuesta = chat.send_message(mensaje)
+    return respuesta.text, _extraer_pasos(chat)
 
-    respuesta = chat.send_message(prompt)
-    return respuesta.text
+
+_PROMPT_SUGERENCIAS = (
+    "Con base en la conversación anterior, propón TRES preguntas de seguimiento "
+    "breves (máximo 9 palabras), en primera persona, que el estudiante podría "
+    "hacerle al asistente de planeación académica. Una por línea, sin numeración "
+    "ni viñetas. Si no hay conversación previa, propón preguntas generales de "
+    "planeación de semestre."
+)
+
+
+def sugerencias(historial: list[dict]) -> list[str]:
+    """Genera hasta 3 preguntas de seguimiento contextuales (sin herramientas)."""
+    if not _api_key_valida():
+        return []
+    try:
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        model = genai.GenerativeModel(model_name=settings.GEMINI_MODEL)
+        chat = model.start_chat(history=_a_history_gemini(historial))
+        texto = chat.send_message(_PROMPT_SUGERENCIAS).text
+        opciones = [linea.strip(" -•*\t").strip() for linea in texto.splitlines()]
+        return [o for o in opciones if len(o) > 4][:3]
+    except Exception:  # noqa: BLE001 — las sugerencias son un extra opcional
+        return []

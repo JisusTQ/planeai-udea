@@ -42,6 +42,8 @@ export default function VistaCupos() {
     );
   }, [cursos, q, nivel]);
 
+  const hayFiltro = q !== "" || nivel != null;
+
   async function abrir(curso) {
     setSel(curso);
     setCargandoGrupos(true);
@@ -64,13 +66,27 @@ export default function VistaCupos() {
           <p>Oferta vigente consultada en vivo desde el portal de la UdeA.</p>
         </div>
 
-        <div className="buscador">
-          <IconSearch width={18} height={18} />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar materia o código…"
-          />
+        <div className="buscar-fila">
+          <div className="buscador">
+            <IconSearch width={18} height={18} />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Buscar materia o código…"
+            />
+          </div>
+          {hayFiltro && (
+            <button
+              className="btn-ghost"
+              onClick={() => {
+                setQ("");
+                setNivel(null);
+              }}
+            >
+              Limpiar
+            </button>
+          )}
+          {!cargandoCursos && <span className="resultados">{filtrados.length} materias</span>}
         </div>
 
         {niveles.length > 0 && (

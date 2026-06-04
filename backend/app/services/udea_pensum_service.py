@@ -16,7 +16,7 @@ from app.services.udea_horarios_service import crear_sesion
 _BASE = "https://wsingenieria.udea.edu.co:8094/cursum/ingenieria"
 _ORIGIN = "https://ingenieria2.udea.edu.co"
 PROGRAMA_ID = 504  # INGENIERÍA DE SISTEMAS
-_TIMEOUT = 30
+_TIMEOUT = 45
 
 CACHE_TTL_SEGUNDOS = 3600  # 1 hora (el plan de estudios es muy estable)
 

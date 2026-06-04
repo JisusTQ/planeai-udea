@@ -58,3 +58,28 @@ export const IconSearch = (p) => (
     <path d="m21 21-4.3-4.3" />
   </svg>
 );
+
+export const IconPlus = (p) => (
+  <svg {...base} {...p}>
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+
+export const IconCopy = (p) => (
+  <svg {...base} {...p}>
+    <rect x="9" y="9" width="13" height="13" rx="2" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </svg>
+);
+
+export const IconCheck = (p) => (
+  <svg {...base} {...p}>
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+);
+
+export const IconBolt = (p) => (
+  <svg {...base} {...p}>
+    <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
+  </svg>
+);

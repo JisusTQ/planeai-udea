@@ -27,7 +27,7 @@ PROGRAMA_NOMBRE = "[00504] INGENIERÍA DE SISTEMAS"
 _BASE = "https://ayudame2.udea.edu.co/php_mares"
 _URL = f"{_BASE}/do.php?app=pub_cuposprog"
 _USER_AGENT = "Mozilla/5.0 (PlaneAI-UdeA; asistente academico)"
-_TIMEOUT = 30  # segundos por petición HTTP
+_TIMEOUT = 60  # segundos por petición HTTP (el portal de cupos es lento)
 
 CACHE_TTL_SEGUNDOS = 600  # 10 minutos
 

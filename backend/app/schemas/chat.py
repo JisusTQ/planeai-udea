@@ -1,20 +1,36 @@
-"""
-Esquemas Pydantic (DTOs) para el endpoint de chat conversacional.
-"""
+"""Esquemas Pydantic (DTOs) del chat conversacional."""
 from pydantic import BaseModel, Field
 
 
+class MensajeHistorial(BaseModel):
+    rol: str  # "user" o "bot"
+    texto: str
+
+
 class ChatRequest(BaseModel):
-    """Mensaje que envía el estudiante al asistente."""
     mensaje: str = Field(
         ...,
         min_length=1,
         max_length=2000,
-        description="Pregunta o petición del estudiante en lenguaje natural.",
         examples=["Soy de 2do semestre, ¿qué grupos con cupo me sirven en la mañana?"],
     )
+    historial: list[MensajeHistorial] = Field(default_factory=list)
+
+
+class PasoAgente(BaseModel):
+    """Una herramienta que el agente decidió invocar (traza del bucle)."""
+    herramienta: str
+    args: dict[str, str] = {}
 
 
 class ChatResponse(BaseModel):
-    """Respuesta generada por el agente (Gemini) sobre datos en vivo de la UdeA."""
     respuesta: str
+    pasos: list[PasoAgente] = []
+
+
+class SugerenciasRequest(BaseModel):
+    historial: list[MensajeHistorial] = Field(default_factory=list)
+
+
+class SugerenciasResponse(BaseModel):
+    sugerencias: list[str] = []
