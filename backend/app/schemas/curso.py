@@ -42,6 +42,23 @@ class GrupoOut(BaseModel):
     profesor: ProfesorOut | None = None
 
 
+class GrupoVivoOut(BaseModel):
+    """Grupo obtenido EN VIVO del portal de la UdeA (profesor como texto plano)."""
+    numero: str
+    cupos_totales: int
+    cupos_disponibles: int
+    aula: str
+    profesor: str
+    horario: list[SesionHorario] = []
+
+
+class MateriaVivaOut(BaseModel):
+    """Materia de la oferta en vivo, con sus grupos del portal de la UdeA."""
+    nombre: str
+    codigo: str
+    grupos: list[GrupoVivoOut] = []
+
+
 class CursoResumen(BaseModel):
     """Curso sin grupos: ideal para listados."""
     model_config = ConfigDict(from_attributes=True)
