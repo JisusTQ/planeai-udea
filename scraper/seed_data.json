@@ -1,0 +1,220 @@
+{
+  "_meta": {
+    "descripcion": "Dataset semilla (fallback) de PlaneAI UdeA. Se carga en la base de datos cuando el scraping de las fuentes oficiales de la Facultad de Ingeniería UdeA no está disponible, garantizando que la aplicación siempre tenga datos para funcionar.",
+    "nota_integridad": "Los NOMBRES de las asignaturas corresponden al pensum público de Ingeniería de Sistemas de la Universidad de Antioquia. Los códigos, cupos, horarios, aulas, profesores y prerrequisitos son REPRESENTATIVOS y fueron generados para fines de demostración del proyecto; no constituyen la oferta oficial.",
+    "programa": "Ingeniería de Sistemas",
+    "facultad": "Facultad de Ingeniería - Universidad de Antioquia",
+    "semestre_academico": "2025-1",
+    "formato_prerrequisitos": "Lista de CÓDIGOS de curso que deben aprobarse antes. El cargador (run_scraper.py) los resuelve en una segunda pasada, cuando todos los cursos ya existen en la BD.",
+    "version": 2
+  },
+  "cursos": [
+    {
+      "codigo": "2521101",
+      "nombre": "Cálculo Diferencial",
+      "creditos": 4,
+      "semestre": 1,
+      "programa": "Ingeniería de Sistemas",
+      "descripcion": "Límites, continuidad y derivadas de funciones de una variable real, con aplicaciones a la ingeniería.",
+      "prerrequisitos": [],
+      "grupos": [
+        {
+          "numero": "1",
+          "semestre_academico": "2025-1",
+          "cupos_totales": 40,
+          "cupos_disponibles": 6,
+          "aula": "10-201",
+          "horario": [
+            { "dia": "lunes", "hora_inicio": "06:00", "hora_fin": "08:00" },
+            { "dia": "miercoles", "hora_inicio": "06:00", "hora_fin": "08:00" }
+          ],
+          "profesor": { "nombre": "Carlos Restrepo Vélez", "email": "carlos.restrepo@udea.edu.co", "departamento": "Matemáticas" }
+        },
+        {
+          "numero": "2",
+          "semestre_academico": "2025-1",
+          "cupos_totales": 40,
+          "cupos_disponibles": 0,
+          "aula": "10-203",
+          "horario": [
+            { "dia": "martes", "hora_inicio": "08:00", "hora_fin": "10:00" },
+            { "dia": "jueves", "hora_inicio": "08:00", "hora_fin": "10:00" }
+          ],
+          "profesor": { "nombre": "Marta Ochoa Gil", "email": "marta.ochoa@udea.edu.co", "departamento": "Matemáticas" }
+        }
+      ]
+    },
+    {
+      "codigo": "2521102",
+      "nombre": "Álgebra y Trigonometría",
+      "creditos": 4,
+      "semestre": 1,
+      "programa": "Ingeniería de Sistemas",
+      "descripcion": "Fundamentos de álgebra, funciones, trigonometría y números complejos.",
+      "prerrequisitos": [],
+      "grupos": [
+        {
+          "numero": "1",
+          "semestre_academico": "2025-1",
+          "cupos_totales": 45,
+          "cupos_disponibles": 14,
+          "aula": "10-105",
+          "horario": [
+            { "dia": "lunes", "hora_inicio": "08:00", "hora_fin": "10:00" },
+            { "dia": "miercoles", "hora_inicio": "08:00", "hora_fin": "10:00" }
+          ],
+          "profesor": { "nombre": "Jorge Mejía Salazar", "email": "jorge.mejia@udea.edu.co", "departamento": "Matemáticas" }
+        }
+      ]
+    },
+    {
+      "codigo": "2511101",
+      "nombre": "Lógica y Representación I",
+      "creditos": 3,
+      "semestre": 1,
+      "programa": "Ingeniería de Sistemas",
+      "descripcion": "Introducción al pensamiento computacional, lógica y fundamentos de la programación.",
+      "prerrequisitos": [],
+      "grupos": [
+        {
+          "numero": "1",
+          "semestre_academico": "2025-1",
+          "cupos_totales": 35,
+          "cupos_disponibles": 3,
+          "aula": "Bloque 21-410",
+          "horario": [
+            { "dia": "martes", "hora_inicio": "10:00", "hora_fin": "12:00" },
+            { "dia": "jueves", "hora_inicio": "10:00", "hora_fin": "12:00" }
+          ],
+          "profesor": { "nombre": "Ana María Posada", "email": "ana.posada@udea.edu.co", "departamento": "Ingeniería de Sistemas" }
+        },
+        {
+          "numero": "2",
+          "semestre_academico": "2025-1",
+          "cupos_totales": 35,
+          "cupos_disponibles": 20,
+          "aula": "Bloque 21-412",
+          "horario": [
+            { "dia": "lunes", "hora_inicio": "06:00", "hora_fin": "08:00" },
+            { "dia": "miercoles", "hora_inicio": "06:00", "hora_fin": "08:00" }
+          ],
+          "profesor": { "nombre": "Diego Cardona Ruiz", "email": "diego.cardona@udea.edu.co", "departamento": "Ingeniería de Sistemas" }
+        }
+      ]
+    },
+    {
+      "codigo": "2521201",
+      "nombre": "Cálculo Integral",
+      "creditos": 4,
+      "semestre": 2,
+      "programa": "Ingeniería de Sistemas",
+      "descripcion": "Integral definida e indefinida, técnicas de integración y aplicaciones.",
+      "prerrequisitos": ["2521101"],
+      "grupos": [
+        {
+          "numero": "1",
+          "semestre_academico": "2025-1",
+          "cupos_totales": 40,
+          "cupos_disponibles": 11,
+          "aula": "10-204",
+          "horario": [
+            { "dia": "martes", "hora_inicio": "06:00", "hora_fin": "08:00" },
+            { "dia": "jueves", "hora_inicio": "06:00", "hora_fin": "08:00" }
+          ],
+          "profesor": { "nombre": "Carlos Restrepo Vélez", "email": "carlos.restrepo@udea.edu.co", "departamento": "Matemáticas" }
+        }
+      ]
+    },
+    {
+      "codigo": "2521202",
+      "nombre": "Álgebra Lineal",
+      "creditos": 4,
+      "semestre": 2,
+      "programa": "Ingeniería de Sistemas",
+      "descripcion": "Matrices, sistemas de ecuaciones lineales, espacios vectoriales y transformaciones lineales.",
+      "prerrequisitos": ["2521102"],
+      "grupos": [
+        {
+          "numero": "1",
+          "semestre_academico": "2025-1",
+          "cupos_totales": 40,
+          "cupos_disponibles": 9,
+          "aula": "10-208",
+          "horario": [
+            { "dia": "lunes", "hora_inicio": "10:00", "hora_fin": "12:00" },
+            { "dia": "miercoles", "hora_inicio": "10:00", "hora_fin": "12:00" }
+          ],
+          "profesor": { "nombre": "Marta Ochoa Gil", "email": "marta.ochoa@udea.edu.co", "departamento": "Matemáticas" }
+        }
+      ]
+    },
+    {
+      "codigo": "2511201",
+      "nombre": "Lógica y Representación II",
+      "creditos": 3,
+      "semestre": 2,
+      "programa": "Ingeniería de Sistemas",
+      "descripcion": "Programación orientada a objetos y estructuras de datos básicas.",
+      "prerrequisitos": ["2511101"],
+      "grupos": [
+        {
+          "numero": "1",
+          "semestre_academico": "2025-1",
+          "cupos_totales": 35,
+          "cupos_disponibles": 7,
+          "aula": "Bloque 21-308",
+          "horario": [
+            { "dia": "martes", "hora_inicio": "14:00", "hora_fin": "16:00" },
+            { "dia": "jueves", "hora_inicio": "14:00", "hora_fin": "16:00" }
+          ],
+          "profesor": { "nombre": "Ana María Posada", "email": "ana.posada@udea.edu.co", "departamento": "Ingeniería de Sistemas" }
+        }
+      ]
+    },
+    {
+      "codigo": "2511301",
+      "nombre": "Matemáticas Discretas",
+      "creditos": 3,
+      "semestre": 3,
+      "programa": "Ingeniería de Sistemas",
+      "descripcion": "Teoría de conjuntos, relaciones, grafos, combinatoria e inducción matemática.",
+      "prerrequisitos": ["2511101"],
+      "grupos": [
+        {
+          "numero": "1",
+          "semestre_academico": "2025-1",
+          "cupos_totales": 30,
+          "cupos_disponibles": 2,
+          "aula": "Bloque 21-205",
+          "horario": [
+            { "dia": "lunes", "hora_inicio": "14:00", "hora_fin": "16:00" },
+            { "dia": "miercoles", "hora_inicio": "14:00", "hora_fin": "16:00" }
+          ],
+          "profesor": { "nombre": "Diego Cardona Ruiz", "email": "diego.cardona@udea.edu.co", "departamento": "Ingeniería de Sistemas" }
+        }
+      ]
+    },
+    {
+      "codigo": "2531201",
+      "nombre": "Física I: Mecánica",
+      "creditos": 4,
+      "semestre": 2,
+      "programa": "Ingeniería de Sistemas",
+      "descripcion": "Cinemática y dinámica de la partícula, trabajo, energía y conservación.",
+      "prerrequisitos": ["2521101"],
+      "grupos": [
+        {
+          "numero": "1",
+          "semestre_academico": "2025-1",
+          "cupos_totales": 38,
+          "cupos_disponibles": 18,
+          "aula": "Lab. Física 12-101",
+          "horario": [
+            { "dia": "viernes", "hora_inicio": "08:00", "hora_fin": "12:00" }
+          ],
+          "profesor": { "nombre": "Liliana Zapata Moreno", "email": "liliana.zapata@udea.edu.co", "departamento": "Física" }
+        }
+      ]
+    }
+  ]
+}
