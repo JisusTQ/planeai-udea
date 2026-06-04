@@ -1,17 +1,10 @@
 """
-Servicio del PENSUM oficial (plan de estudios) desde el portal Cursum de la
-Facultad de Ingeniería de la UdeA.
+Pensum oficial de Ingeniería de Sistemas desde el portal Cursum.
 
-Entrega, para el programa de Ingeniería de Sistemas, las materias organizadas
-por NIVEL (cada nivel equivale a un semestre: nivel 1 = semestre 1, etc.).
-El asistente lo usa para saber QUÉ materias corresponden a un semestre antes de
-revisar sus cupos/horarios en vivo.
+Las materias se organizan por NIVEL (= semestre). El agente lo usa para saber
+qué materias corresponden a un semestre antes de revisar cupos/horarios.
 
-API (descubierta desde la SPA https://ingenieria2.udea.edu.co/cursum):
-    GET {BASE}/programas            -> lista de programas (incluye versionActual)
-    GET {BASE}/pensum/{prog}/{ver}  -> materias del pensum de esa versión
-
-El pensum cambia muy rara vez, así que se cachea por más tiempo que la oferta.
+API:  GET {BASE}/programas -> versión vigente; GET {BASE}/pensum/{prog}/{ver}.
 """
 from __future__ import annotations
 

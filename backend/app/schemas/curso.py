@@ -1,10 +1,4 @@
-"""
-Esquemas Pydantic (DTOs) para cursos, grupos y profesores.
-
-Estos esquemas definen el CONTRATO de la API: qué forma tienen los datos que
-salen por cada endpoint. Toda la información proviene en vivo de los portales de
-la UdeA (no hay base de datos).
-"""
+"""Esquemas Pydantic (DTOs) de cursos, grupos y profesores que expone la API."""
 from pydantic import BaseModel, ConfigDict
 
 

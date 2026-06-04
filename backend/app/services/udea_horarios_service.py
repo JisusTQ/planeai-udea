@@ -1,18 +1,9 @@
 """
-Servicio de horarios EN VIVO desde el portal oficial de la UdeA.
+Grupos, cupos, horarios y profesores EN VIVO del portal de Admisiones UdeA
+(ayudame2.udea.edu.co/php_mares, app=pub_cuposprog).
 
-Reemplaza a la base de datos como fuente de los grupos, cupos, horarios y
-profesores: consulta en tiempo real la página pública
-"GRUPOS, CUPOS Y HORARIOS POR PROGRAMA" de Admisiones y Registro.
-
-    https://ayudame2.udea.edu.co/php_mares/do.php?app=pub_cuposprog
-
-El portal exige una sesión válida: primero un GET (que fija la cookie PHPSESSID
-y entrega un token `numrand`) y luego el POST del formulario. Sin ese flujo el
-sitio responde "Ha ingresado de forma inadecuada".
-
-Para no golpear el sitio en cada mensaje del chat, la oferta se cachea en
-memoria durante CACHE_TTL_SEGUNDOS (10 min por defecto).
+El portal exige sesión: un GET fija la cookie y entrega el token `numrand`, y
+luego se envía el POST del formulario. La oferta se cachea CACHE_TTL_SEGUNDOS.
 """
 from __future__ import annotations
 

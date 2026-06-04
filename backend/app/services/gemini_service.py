@@ -1,17 +1,9 @@
 """
-Servicio de IA AGÉNTICA: integra Google Gemini con datos en vivo de la UdeA.
+Agente Gemini con tool-calling sobre datos en vivo de la UdeA.
 
-El backend NO usa base de datos: toda la información proviene en vivo de los
-portales oficiales de la UdeA. Gemini funciona como un AGENTE con tool-calling:
-se le entregan dos herramientas y el propio modelo DECIDE cuándo invocarlas.
-
-  - `consultar_pensum`        -> materias por nivel/semestre + prerrequisitos.
-  - `consultar_horarios_udea` -> grupos, cupos, horarios y profesores en vivo.
-
-La librería google-generativeai ejecuta el bucle agéntico automáticamente
-(`enable_automatic_function_calling=True`): envía la pregunta, recibe la
-petición de herramienta del modelo, ejecuta la función Python, le devuelve el
-resultado y obtiene la respuesta final.
+Se le entregan dos herramientas (`consultar_pensum` y `consultar_horarios_udea`)
+y el modelo decide cuándo invocarlas; el SDK ejecuta el bucle agéntico
+automáticamente (enable_automatic_function_calling).
 """
 import google.generativeai as genai
 

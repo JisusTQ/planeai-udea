@@ -11,9 +11,7 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Ruta ABSOLUTA al archivo backend/.env. Usarla (en vez de ".env" relativo) hace
-# que la configuración se cargue correctamente sin importar desde qué carpeta se
-# ejecute el proceso: la app (uvicorn), Alembic o el scraper.
+# Ruta absoluta a backend/.env, para cargarlo sin importar el directorio actual.
 _ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 
 
