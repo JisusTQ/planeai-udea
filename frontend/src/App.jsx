@@ -43,8 +43,15 @@ export default function App() {
         </div>
       </aside>
 
+      {/* Ambas vistas se mantienen montadas; solo se oculta la inactiva para
+          conservar su estado (la conversación del chat no se reinicia). */}
       <main className="main">
-        {vista === "chat" ? <Chat /> : <VistaCupos />}
+        <div className={`panel ${vista === "chat" ? "" : "oculto"}`}>
+          <Chat />
+        </div>
+        <div className={`panel ${vista === "cupos" ? "" : "oculto"}`}>
+          <VistaCupos />
+        </div>
       </main>
     </div>
   );

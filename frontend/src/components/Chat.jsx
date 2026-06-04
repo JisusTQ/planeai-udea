@@ -2,7 +2,21 @@ import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 
 import { enviarMensaje, obtenerSugerencias } from "../api.js";
-import { IconSend, IconPlus, IconCopy, IconCheck, IconBolt } from "./icons.jsx";
+import {
+  cargarActual,
+  guardarActual,
+  cargarHistorial,
+  guardarHistorial,
+} from "../historial.js";
+import {
+  IconSend,
+  IconPlus,
+  IconCopy,
+  IconCheck,
+  IconBolt,
+  IconHistorial,
+  IconTrash,
+} from "./icons.jsx";
 
 const SUGERENCIAS_INICIALES = [
   "Soy de primer semestre, ¿qué matriculo en la mañana?",
@@ -14,6 +28,7 @@ const SUGERENCIAS_INICIALES = [
 ];
 
 const barajar = (arr) => [...arr].sort(() => Math.random() - 0.5);
+const sugerirIniciales = () => barajar(SUGERENCIAS_INICIALES).slice(0, 4);
 
 const SALUDO = {
   rol: "bot",
@@ -31,6 +46,13 @@ function etiquetaPaso(paso) {
   const arg = paso.args?.nivel || paso.args?.materia || "";
   const corto = arg.length > 30 ? `${arg.slice(0, 30)}…` : arg;
   return corto ? `${nombre}: ${corto}` : nombre;
+}
+
+function formatoFecha(ts) {
+  const d = new Date(ts);
+  const hora = d.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
+  if (d.toDateString() === new Date().toDateString()) return `Hoy ${hora}`;
+  return `${d.toLocaleDateString("es", { day: "2-digit", month: "short" })} ${hora}`;
 }
 
 function RespuestaBot({ texto, pasos }) {
@@ -64,19 +86,41 @@ function RespuestaBot({ texto, pasos }) {
 }
 
 export default function Chat() {
-  const [mensajes, setMensajes] = useState([SALUDO]);
+  const [mensajes, setMensajes] = useState(() => cargarActual() ?? [SALUDO]);
+  const [historial, setHistorial] = useState(() => cargarHistorial());
+  const [mostrarHistorial, setMostrarHistorial] = useState(false);
   const [entrada, setEntrada] = useState("");
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
-  const [sugerencias, setSugerencias] = useState(() =>
-    barajar(SUGERENCIAS_INICIALES).slice(0, 4)
-  );
+  const [sugerencias, setSugerencias] = useState(sugerirIniciales);
   const finRef = useRef(null);
   const areaRef = useRef(null);
 
   useEffect(() => {
     finRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensajes, cargando]);
+
+  useEffect(() => {
+    guardarActual(mensajes);
+  }, [mensajes]);
+
+  function persistirHistorial(lista) {
+    setHistorial(lista);
+    guardarHistorial(lista);
+  }
+
+  // Archiva la conversación actual en el historial si tiene mensajes del usuario.
+  function archivar(lista) {
+    const primera = mensajes.find((m) => m.rol === "user");
+    if (!primera) return lista;
+    const conv = {
+      id: Date.now(),
+      titulo: primera.texto.slice(0, 60),
+      fecha: Date.now(),
+      mensajes,
+    };
+    return [conv, ...lista];
+  }
 
   async function pedirRespuesta(conversacion) {
     setCargando(true);
@@ -110,10 +154,25 @@ export default function Chat() {
 
   function nuevaConversacion() {
     if (cargando) return;
+    persistirHistorial(archivar(historial));
     setMensajes([SALUDO]);
     setEntrada("");
     setError(null);
-    setSugerencias(barajar(SUGERENCIAS_INICIALES).slice(0, 4));
+    setSugerencias(sugerirIniciales());
+    setMostrarHistorial(false);
+  }
+
+  function cargarConversacion(conv) {
+    persistirHistorial(archivar(historial).filter((c) => c.id !== conv.id));
+    setMensajes(conv.mensajes);
+    setError(null);
+    setSugerencias(sugerirIniciales());
+    setMostrarHistorial(false);
+  }
+
+  function borrarConversacion(id, e) {
+    e.stopPropagation();
+    persistirHistorial(historial.filter((c) => c.id !== id));
   }
 
   return (
@@ -123,11 +182,50 @@ export default function Chat() {
           <h2>Asistente</h2>
           <p>Pregunta por materias, cupos y horarios en lenguaje natural.</p>
         </div>
-        {mensajes.length > 1 && (
-          <button className="btn-ghost" onClick={nuevaConversacion} disabled={cargando}>
-            <IconPlus width={16} height={16} /> Nueva
-          </button>
-        )}
+
+        <div className="head-acciones">
+          <div className="historial-wrap">
+            <button className="btn-ghost" onClick={() => setMostrarHistorial((v) => !v)}>
+              <IconHistorial width={16} height={16} /> Historial
+              {historial.length > 0 ? ` (${historial.length})` : ""}
+            </button>
+            {mostrarHistorial && (
+              <>
+                <div className="overlay-historial" onClick={() => setMostrarHistorial(false)} />
+                <div className="historial-panel">
+                  {historial.length === 0 ? (
+                    <p className="historial-vacio">Aún no tienes conversaciones guardadas.</p>
+                  ) : (
+                    historial.map((c) => (
+                      <div key={c.id} className="historial-item">
+                        <button
+                          className="historial-cargar"
+                          onClick={() => cargarConversacion(c)}
+                        >
+                          <span className="historial-titulo">{c.titulo}</span>
+                          <span className="historial-fecha">{formatoFecha(c.fecha)}</span>
+                        </button>
+                        <button
+                          className="historial-borrar"
+                          onClick={(e) => borrarConversacion(c.id, e)}
+                          aria-label="Borrar conversación"
+                        >
+                          <IconTrash width={15} height={15} />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          {mensajes.length > 1 && (
+            <button className="btn-ghost" onClick={nuevaConversacion} disabled={cargando}>
+              <IconPlus width={16} height={16} /> Nueva
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="chat-scroll">

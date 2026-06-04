@@ -608,12 +608,99 @@ button {
   margin: 0.5rem 0;
 }
 
+/* Vistas montadas a la vez: se oculta la inactiva (preserva su estado) */
+.main > .panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.main > .panel.oculto {
+  display: none;
+}
+
 /* Cabecera con acción (botón a la derecha) */
 .view-head.con-accion {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+}
+.head-acciones {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Panel de historial de conversaciones */
+.historial-wrap {
+  position: relative;
+}
+.overlay-historial {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+}
+.historial-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: min(300px, 78vw);
+  max-height: 360px;
+  overflow-y: auto;
+  background: var(--blanco);
+  border: 1px solid var(--gris-200);
+  border-radius: var(--r-md);
+  box-shadow: var(--s3);
+  z-index: 20;
+  padding: 0.35rem;
+}
+.historial-vacio {
+  padding: 1.1rem;
+  font-size: 0.85rem;
+  color: var(--gris-500);
+  text-align: center;
+}
+.historial-item {
+  display: flex;
+  align-items: stretch;
+  border-radius: var(--r-sm);
+}
+.historial-item:hover {
+  background: var(--lienzo);
+}
+.historial-cargar {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 0.55rem 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.historial-titulo {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--tinta);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.historial-fecha {
+  font-size: 0.72rem;
+  color: var(--gris-500);
+}
+.historial-borrar {
+  border: none;
+  background: transparent;
+  color: var(--gris-300);
+  padding: 0 0.55rem;
+  display: grid;
+  place-items: center;
+}
+.historial-borrar:hover {
+  color: var(--alerta);
 }
 .btn-ghost {
   display: inline-flex;
