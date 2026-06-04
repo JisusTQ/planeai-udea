@@ -16,9 +16,5 @@ class ChatRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    """Respuesta generada por el asistente (Gemini) usando los datos de la BD."""
+    """Respuesta generada por el agente (Gemini) sobre datos en vivo de la UdeA."""
     respuesta: str
-    cursos_considerados: int = Field(
-        ...,
-        description="Cantidad de cursos de la BD que se enviaron como contexto a la IA.",
-    )

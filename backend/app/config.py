@@ -20,9 +20,6 @@ _ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 class Settings(BaseSettings):
     """Esquema tipado de toda la configuración del backend."""
 
-    # --- Base de datos ---
-    DATABASE_URL: str
-
     # --- Google Gemini ---
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.5-flash"

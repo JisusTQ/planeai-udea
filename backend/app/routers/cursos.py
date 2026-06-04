@@ -1,30 +1,24 @@
 """
-Router de cursos: endpoints REST para consultar la oferta académica.
+Router de cursos: endpoints REST sobre datos EN VIVO de la UdeA (sin base de datos).
 
-  GET /cursos                  -> lista de cursos del catálogo (BD)
-  GET /cursos/en-vivo          -> oferta COMPLETA en vivo del portal UdeA
-  GET /cursos/{id}             -> detalle de un curso (catálogo + prerrequisitos)
-  GET /cursos/{id}/grupos      -> grupos/cupos/horarios EN VIVO del portal UdeA
+  GET /cursos                  -> catálogo (pensum) por nivel/semestre
+  GET /cursos/en-vivo          -> oferta COMPLETA en vivo (todas las materias)
+  GET /cursos/{codigo}/grupos  -> grupos/cupos/horarios EN VIVO de una materia
 
-Cambio de arquitectura: los grupos, cupos y horarios ya NO salen de la base de
-datos, sino del portal oficial de Admisiones y Registro (en vivo, cacheado).
-El catálogo (créditos, semestre, prerrequisitos) sí proviene de la BD.
+El catálogo proviene del pensum oficial (portal Cursum) y los grupos/horarios del
+portal de Admisiones y Registro. Ambos comparten el mismo código de materia, así
+que el cruce es exacto.
 """
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException
 
-from app.database import get_db
 from app.schemas.curso import (
-    CursoDetalle,
-    CursoResumen,
-    GrupoVivoOut,
+    GrupoOut,
     MateriaPensumOut,
     MateriaVivaOut,
+    GrupoVivoOut,
     ProfesorOut,
     SesionHorario,
-    GrupoOut,
 )
-from app.services import curso_service
 from app.services import udea_horarios_service as udea
 from app.services import udea_pensum_service as pensum
 
@@ -38,14 +32,29 @@ def _sesiones(grupo) -> list[SesionHorario]:
     ]
 
 
-@router.get("", response_model=list[CursoResumen], summary="Listar cursos")
-def listar_cursos(
-    programa: str | None = None,
-    semestre: int | None = None,
-    db: Session = Depends(get_db),
-):
-    """Devuelve la lista de cursos del catálogo, opcionalmente filtrada."""
-    return curso_service.listar_cursos(db, programa=programa, semestre=semestre)
+@router.get("", response_model=list[MateriaPensumOut], summary="Catálogo de cursos (pensum)")
+def listar_cursos(nivel: int | None = None):
+    """
+    Catálogo de materias del programa, tomado del pensum oficial en vivo.
+    Con `?nivel=N` filtra por nivel/semestre (1=primero…; 99=electivas).
+    """
+    try:
+        materias = pensum.materias_por_nivel(nivel) if nivel else pensum.obtener_pensum()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(
+            status_code=502, detail=f"No se pudo consultar el pensum UdeA: {exc}"
+        ) from exc
+
+    return [
+        MateriaPensumOut(
+            codigo=m.codigo,
+            nombre=m.nombre,
+            nivel=m.nivel,
+            creditos=m.creditos,
+            tipo=m.tipo,
+        )
+        for m in materias
+    ]
 
 
 @router.get(
@@ -83,61 +92,17 @@ def oferta_en_vivo():
 
 
 @router.get(
-    "/pensum",
-    response_model=list[MateriaPensumOut],
-    summary="Pensum oficial por nivel (semestre)",
-)
-def pensum_oficial(nivel: int | None = None):
-    """
-    Devuelve las materias del pensum oficial (portal Cursum). Con `?nivel=N` filtra
-    por nivel/semestre (1=primero, 2=segundo…; 99=electivas).
-    """
-    try:
-        materias = (
-            pensum.materias_por_nivel(nivel) if nivel else pensum.obtener_pensum()
-        )
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(
-            status_code=502, detail=f"No se pudo consultar el pensum UdeA: {exc}"
-        ) from exc
-
-    return [
-        MateriaPensumOut(
-            codigo=m.codigo,
-            nombre=m.nombre,
-            nivel=m.nivel,
-            creditos=m.creditos,
-            tipo=m.tipo,
-        )
-        for m in materias
-    ]
-
-
-@router.get("/{curso_id}", response_model=CursoDetalle, summary="Detalle de un curso")
-def obtener_curso(curso_id: int, db: Session = Depends(get_db)):
-    """Devuelve un curso con sus prerrequisitos (catálogo de la BD)."""
-    curso = curso_service.obtener_curso(db, curso_id)
-    if curso is None:
-        raise HTTPException(status_code=404, detail="Curso no encontrado")
-    return curso
-
-
-@router.get(
-    "/{curso_id}/grupos",
+    "/{codigo}/grupos",
     response_model=list[GrupoOut],
-    summary="Cupos/horarios EN VIVO de un curso",
+    summary="Cupos/horarios EN VIVO de una materia",
 )
-def grupos_de_curso(curso_id: int, db: Session = Depends(get_db)):
+def grupos_de_curso(codigo: str):
     """
-    Devuelve los grupos de un curso con sus cupos y horarios, obtenidos EN VIVO
-    del portal de la UdeA (se cruza con el catálogo por el nombre del curso).
+    Grupos de una materia (por su código) con cupos y horarios, EN VIVO del portal
+    de la UdeA. El código es el mismo del catálogo/pensum.
     """
-    curso = curso_service.obtener_curso(db, curso_id)
-    if curso is None:
-        raise HTTPException(status_code=404, detail="Curso no encontrado")
-
     try:
-        grupos_vivos = udea.grupos_por_nombre(curso.nombre)
+        grupos_vivos = udea.grupos_por_codigo(codigo)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(
             status_code=502, detail=f"No se pudo consultar el portal UdeA: {exc}"

@@ -32,13 +32,19 @@ NIVEL_ELECTIVAS = 99
 
 
 @dataclass
+class Requisito:
+    codigo: int          # código de la materia requisito
+    tipo: str            # "PRERREQ" (prerrequisito) o "CORREQ" (correquisito)
+
+
+@dataclass
 class MateriaPensum:
     codigo: int
     nombre: str
     nivel: int
     creditos: int
     tipo: str
-    requisitos: list = field(default_factory=list)
+    requisitos: list[Requisito] = field(default_factory=list)
 
 
 _cache: dict = {"datos": None, "ts": 0.0, "version": None}
@@ -71,7 +77,14 @@ def _descargar() -> tuple[list[MateriaPensum], int]:
             nivel=int(x.get("nivel") or 0),
             creditos=int(x.get("creditos") or 0),
             tipo=(x.get("tipoMateria") or "").strip(),
-            requisitos=x.get("requisitos") or [],
+            requisitos=[
+                Requisito(
+                    codigo=int(req["materiaRequisito"]),
+                    tipo=(req.get("tipoRequisito") or "").strip(),
+                )
+                for req in (x.get("requisitos") or [])
+                if req.get("materiaRequisito")
+            ],
         )
         for x in r.json()
     ]
@@ -106,3 +119,14 @@ def materias_por_nivel(nivel: int) -> list[MateriaPensum]:
 def niveles_disponibles() -> list[int]:
     """Niveles (semestres) presentes en el pensum, ordenados."""
     return sorted({m.nivel for m in obtener_pensum()})
+
+
+def catalogo_por_codigo() -> dict[int, MateriaPensum]:
+    """Índice {código -> materia} para resolver requisitos por su código."""
+    return {m.codigo: m for m in obtener_pensum()}
+
+
+def nombre_de(codigo: int) -> str:
+    """Nombre de una materia dado su código (o el código como texto si no existe)."""
+    materia = catalogo_por_codigo().get(codigo)
+    return materia.nombre if materia else str(codigo)

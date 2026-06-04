@@ -14,9 +14,9 @@ export async function listarCursos() {
   return res.json();
 }
 
-/** Obtiene los grupos (cupos, horario, profesor) de un curso. */
-export async function obtenerGrupos(cursoId) {
-  const res = await fetch(`${API_URL}/cursos/${cursoId}/grupos`);
+/** Obtiene los grupos (cupos, horario, profesor) de una materia por su código. */
+export async function obtenerGrupos(codigo) {
+  const res = await fetch(`${API_URL}/cursos/${codigo}/grupos`);
   if (!res.ok) throw new Error("No se pudieron cargar los grupos.");
   return res.json();
 }

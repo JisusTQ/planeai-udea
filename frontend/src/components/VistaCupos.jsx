@@ -21,7 +21,7 @@ export default function VistaCupos() {
     setCargando(true);
     setError(null);
     try {
-      setGrupos(await obtenerGrupos(curso.id));
+      setGrupos(await obtenerGrupos(curso.codigo));
     } catch (e) {
       setError(e.message);
     } finally {
@@ -44,13 +44,13 @@ export default function VistaCupos() {
         <ul>
           {cursos.map((c) => (
             <li
-              key={c.id}
-              className={seleccionado?.id === c.id ? "activo" : ""}
+              key={c.codigo}
+              className={seleccionado?.codigo === c.codigo ? "activo" : ""}
               onClick={() => verGrupos(c)}
             >
               <strong>{c.nombre}</strong>
               <span>
-                {c.codigo} · sem {c.semestre ?? "-"} · {c.creditos} cr
+                {c.codigo} · sem {c.nivel ?? "-"} · {c.creditos} cr
               </span>
             </li>
           ))}

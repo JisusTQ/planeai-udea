@@ -2,8 +2,8 @@
 Smoke test de la API de PlaneAI UdeA.
 
 Ejecuta peticiones reales contra la app (con TestClient, en proceso) para
-verificar rápidamente que los endpoints responden y que los datos fluyen desde
-PostgreSQL. Útil como verificación manual antes de una demostración.
+verificar que los endpoints responden y que los datos fluyen desde los portales
+EN VIVO de la UdeA (no hay base de datos). Útil como verificación rápida.
 
 Requiere httpx (incluido en requirements.txt).
 Uso:  cd backend && python check_api.py
@@ -20,35 +20,32 @@ def main() -> None:
     r = client.get("/health")
     print(r.status_code, r.json())
 
-    print("\n=== GET /cursos (lista) ===")
+    print("\n=== GET /cursos (catálogo / pensum en vivo) ===")
     cursos = client.get("/cursos").json()
-    print(f"{len(cursos)} cursos:")
-    for cu in cursos:
-        print(f"   {cu['codigo']}  {cu['nombre']}  (sem {cu['semestre']}, {cu['creditos']} cr)")
+    print(f"{len(cursos)} materias en el pensum")
 
-    print("\n=== GET /cursos?semestre=1 (filtro) ===")
-    print(len(client.get("/cursos", params={"semestre": 1}).json()), "cursos de semestre 1")
+    print("\n=== GET /cursos?nivel=1 (materias de primer semestre) ===")
+    nivel1 = client.get("/cursos", params={"nivel": 1}).json()
+    for m in nivel1:
+        print(f"   {m['codigo']}  {m['nombre']}  ({m['creditos']} cr, {m['tipo']})")
 
-    print("\n=== GET /cursos/{id} (detalle con prerrequisitos) ===")
-    cid = next(x["id"] for x in cursos if x["codigo"] == "2521201")
-    d = client.get(f"/cursos/{cid}").json()
-    print("curso:", d["nombre"])
-    print("   prerrequisitos:", [p["nombre"] for p in d["prerrequisitos"]])
-
-    print("\n=== GET /cursos/{id}/grupos (cupos y horarios) ===")
-    for gr in client.get(f"/cursos/{cid}/grupos").json():
-        prof = gr["profesor"]["nombre"] if gr["profesor"] else "N/A"
-        print(f"   Grupo {gr['numero']}: {gr['cupos_disponibles']}/{gr['cupos_totales']} cupos | prof {prof}")
-        for s in gr["horario"]:
+    print("\n=== GET /cursos/{codigo}/grupos (cupos/horarios EN VIVO) ===")
+    # Cálculo Diferencial (código compartido entre pensum y portal de cupos).
+    codigo = "2555131"
+    grupos = client.get(f"/cursos/{codigo}/grupos").json()
+    print(f"código {codigo}: {len(grupos)} grupos")
+    for g in grupos[:3]:
+        prof = g["profesor"]["nombre"] if g["profesor"] else "N/A"
+        print(f"   Grupo {g['numero']}: {g['cupos_disponibles']}/{g['cupos_totales']} cupos | prof {prof}")
+        for s in g["horario"]:
             print(f"       {s['dia']} {s['hora_inicio']}-{s['hora_fin']}")
 
-    print("\n=== GET /cursos/9999 (inexistente -> 404 esperado) ===")
-    r = client.get("/cursos/9999")
-    print(r.status_code, r.json())
+    print("\n=== GET /cursos/en-vivo (oferta completa) ===")
+    print(len(client.get("/cursos/en-vivo").json()), "materias ofertadas")
 
-    print("\n=== POST /chat (sin API key -> 503 esperado) ===")
-    r = client.post("/chat", json={"mensaje": "Hola"})
-    print(r.status_code, r.json())
+    print("\n=== POST /chat (consulta el agente) ===")
+    r = client.post("/chat", json={"mensaje": "Hola, ¿qué puedes hacer?"})
+    print(r.status_code, str(r.json())[:200])
 
 
 if __name__ == "__main__":

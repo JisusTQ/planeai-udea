@@ -2,11 +2,8 @@
 Esquemas Pydantic (DTOs) para cursos, grupos y profesores.
 
 Estos esquemas definen el CONTRATO de la API: qué forma tienen los datos que
-salen por cada endpoint. Se separan de los modelos SQLAlchemy para no exponer
-la estructura interna de la BD y poder versionar la API con independencia.
-
-`from_attributes=True` permite construir el DTO directamente desde un objeto
-ORM (p. ej. CursoDetalle.model_validate(curso)).
+salen por cada endpoint. Toda la información proviene en vivo de los portales de
+la UdeA (no hay base de datos).
 """
 from pydantic import BaseModel, ConfigDict
 
@@ -66,25 +63,3 @@ class MateriaVivaOut(BaseModel):
     nombre: str
     codigo: str
     grupos: list[GrupoVivoOut] = []
-
-
-class CursoResumen(BaseModel):
-    """Curso sin grupos: ideal para listados."""
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    codigo: str
-    nombre: str
-    creditos: int
-    semestre: int | None = None
-    programa: str
-
-
-class CursoDetalle(CursoResumen):
-    """Curso completo del catálogo: incluye descripción y prerrequisitos.
-
-    Los grupos/horarios/cupos NO se incluyen aquí: se consultan en vivo en el
-    endpoint GET /cursos/{id}/grupos.
-    """
-    descripcion: str | None = None
-    prerrequisitos: list[CursoResumen] = []

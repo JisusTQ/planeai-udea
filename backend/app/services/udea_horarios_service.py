@@ -284,14 +284,13 @@ def buscar_materias(filtro: str) -> list[MateriaViva]:
     ]
 
 
-def grupos_por_nombre(nombre: str) -> list[GrupoVivo]:
+def grupos_por_codigo(codigo: str | int) -> list[GrupoVivo]:
     """
-    Grupos en vivo de la materia cuyo nombre coincide con `nombre`.
-    Cruza por nombre normalizado (la BD y el portal usan códigos distintos).
+    Grupos en vivo de la materia con ese código. El pensum y el portal de cupos
+    usan el MISMO código, así que el cruce es exacto.
     """
-    objetivo = normalizar(nombre)
+    objetivo = str(codigo).strip()
     for m in obtener_oferta():
-        n = normalizar(m.nombre)
-        if n == objetivo or objetivo in n or n in objetivo:
+        if m.codigo == objetivo:
             return m.grupos
     return []
