@@ -13,6 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
+from app.routers import chat, cursos
 
 settings = get_settings()
 
@@ -39,7 +40,6 @@ def health_check():
     return {"status": "ok", "app": settings.APP_NAME, "env": settings.APP_ENV}
 
 
-# --- Routers (se activarán en las próximas fases) ---
-# from app.routers import cursos, chat
-# app.include_router(cursos.router)
-# app.include_router(chat.router)
+# --- Routers ---
+app.include_router(cursos.router)
+app.include_router(chat.router)

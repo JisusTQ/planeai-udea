@@ -22,3 +22,6 @@ google-generativeai==0.8.3       # SDK oficial de Google Gemini
 # ----- Scraping / ingesta de datos -----
 requests==2.32.3                 # Peticiones HTTP a las fuentes oficiales
 beautifulsoup4==4.12.3           # Parseo de HTML
+
+# ----- Testing / verificación -----
+httpx==0.28.1                    # Cliente HTTP para TestClient (smoke tests)
